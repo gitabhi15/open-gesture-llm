@@ -15,7 +15,7 @@ print(f"Using compute device: {DEVICE}")
 EPOCHS = 30
 BATCH_SIZE = 16
 LEARNING_RATE = 0.001
-NUM_CLASSES = 3  # Idle (0), Swipe (1), Flick (2)
+NUM_CLASSES = 4  
 
 # ==========================================
 # 1. Dataset Memory Management
@@ -76,7 +76,7 @@ class GestureNet(nn.Module):
 # ==========================================
 def main():
     # Load memory blocks and slice into batches
-    dataset = SensorDataset("training_tensors/X_train.npy", "training_tensors/y_train.npy")
+    dataset = SensorDataset("training_tensors_data/X_train.npy", "training_tensors_data/y_train.npy")
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
     
     # Initialize the network and push it to the GPU

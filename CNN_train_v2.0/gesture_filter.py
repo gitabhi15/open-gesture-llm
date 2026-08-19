@@ -19,13 +19,13 @@ GESTURE_MAP = {
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def apply_filters(column_data, cutoff_low = 0.5, cutoff_high = 50):
+def apply_filters(column_data, cutoff_low = 0.5, cutoff_high = 5.0):
     nyquist = 0.5 * SAMPLING_RATE
 
     b_high, a_high = butter(4, cutoff_low / nyquist, btype = 'high')
     no_gravity = filtfilt(b_high, a_high, column_data)
 
-    b_low, a_low = butter(4, cutoff_high / nyquist, bytpe = 'low')
+    b_low, a_low = butter(4, cutoff_high / nyquist, btype = 'low')
     clean_signal = filtfilt(b_low, a_low, no_gravity)
 
     return clean_signal
@@ -45,8 +45,8 @@ for file_path in csv_files:
         continue
 
     class_id = GESTURE_MAP[base_name]
-    df = pd.read(file_path)
-    raw_sensors = [['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'dist']].values
+    df = pd.read_csv(file_path)
+    raw_sensors = df[['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'dist']].values
 
     clean_sensors = np.zeros_like(raw_sensors)
     for channel in range(10):
