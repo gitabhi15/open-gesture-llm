@@ -17,9 +17,9 @@ load_dotenv()
 UDP_IP = "0.0.0.0"
 UDP_PORT = 5005
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CLASS_MAP = {0: "idle", 1: "flick", 2: "swivel", 3: "wave"}
+CLASS_MAP = {0: "idle", 1: "turn", 2: "swivel", 3: "wave"}
 CACHE_FILE = "llm_cache.json"
-MOTION_THRESHOLD = 300.0 
+MOTION_THRESHOLD = 2.5 
 
 API_KEY = os.environ.get("GROQ_API_KEY", "")
 
@@ -36,8 +36,8 @@ llm_cache = load_cache()
 mean_vals = np.load("training_tensors_data/mean.npy").squeeze()
 std_vals = np.load("training_tensors_data/std.npy").squeeze()
 
-raw_window = deque(maxlen=50)
-filtered_window = deque(maxlen=50)
+raw_window = deque(maxlen=15)
+filtered_window = deque(maxlen=15)
 
 nyq = 25.0
 b_hi, a_hi = butter(4, 0.5/nyq, btype='high')
@@ -58,7 +58,7 @@ class GestureNet(nn.Module):
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(64 * 12, 128),
+            nn.Linear(64 * 3, 128),
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(128, num_classes)
@@ -85,6 +85,18 @@ def udp_listener():
             filtered_window.append(clean_sample)
 
 def execute_semantic_action(gesture_name):
+    # Absolute overrides (bypasses LLM entirely)
+    if gesture_name == "turn":
+        subprocess.run("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-", shell=True)
+        return
+    elif gesture_name == "swivel":
+        subprocess.run("playerctl next", shell=True)
+        return
+    elif gesture_name == "wave":
+        subprocess.run("playerctl play-pause", shell=True)
+        return
+
+    # Semantic routing fallback
     try:
         dbus_cmd = [
             "gdbus", "call", "--session", 
@@ -146,12 +158,14 @@ def main():
     capture_countdown = 0
 
     while True:
-        if len(raw_window) == 50:
+        # BUG FIX: Wait for the 15-sample window to fill, not 50.
+        if len(raw_window) == 15:
             current_raw = raw_window[-1]
             gyro_mag = np.sqrt(current_raw[3]**2 + current_raw[4]**2 + current_raw[5]**2)
             
             if gyro_mag > MOTION_THRESHOLD and capture_countdown == 0 and (time.time() - last_trigger_time > 0.8):
-                capture_countdown = 40 
+                # FIX: Align countdown with the peak_idx + 12 logic.
+                capture_countdown = 12 
                 
             if capture_countdown > 0:
                 capture_countdown -= 1

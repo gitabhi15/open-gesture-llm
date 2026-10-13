@@ -42,8 +42,8 @@ for file_path in csv_files:
     gyro_mags = np.sqrt(np.sum(raw_sensors[:, 3:6]**2, axis=1))
     peak_idx = np.argmax(gyro_mags)
     
-    start = peak_idx - 10
-    end = peak_idx + 40
+    start = peak_idx - 3
+    end = peak_idx + 12
     
     if start >= 0 and end <= len(clean_sensors):
         clean_tensors.append(clean_sensors[start:end, :])
